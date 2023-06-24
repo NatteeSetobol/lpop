@@ -152,6 +152,16 @@ Options::Options(int argc, char *args[])
 
 Options::~Options()
 {
+	struct options_params *help = NULL;
+
+    help = Get("--help");
+
+	Free(help->trigger);
+	Free(help->name);
+	Free(help->description);
+
+	Free(help);
+	
 	if (exeName)
 	{
 		Free(exeName);

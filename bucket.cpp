@@ -157,12 +157,21 @@ void Map::CleanUp()
 							Free(mNode->key);
 							mNode->key = NULL;
 						}
+
+						Free(mNode);
+						mNode=NULL;
 					}
 				}
 				delete(mapNode->CollusionArray);
 				mapNode->CollusionArray = NULL;
 			}
 			
+		}
+
+		if (key)
+		{
+			Free(key);
+			key=NULL;
 		}
 		
 	}

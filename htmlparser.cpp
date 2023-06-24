@@ -1342,6 +1342,12 @@ struct html_element_result Html_Parser::FindElementBy(enum html_element_type eTy
 				//htmlFree(&htmlElementResult);
 				break;
 			} else {
+				if (htmlElementResult.parameters)
+				{
+					FreeAllParameter(htmlElementResult.parameters);
+					delete htmlElementResult.parameters; 
+					htmlElementResult.parameters = NULL;
+				}
 				//htmlFree(&htmlelementresult);
 			}
 		}
