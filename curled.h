@@ -27,6 +27,6 @@ class CURLED
         s32* Request(s32 *url, s32* postData);
 };
 
-
+bool IsHttp(s32 *url);
 size_t curl_write_func(void *ptr, size_t size, size_t nmemb, void *userdata);
 #endif

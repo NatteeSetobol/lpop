@@ -129,3 +129,38 @@ size_t curl_write_func(void *ptr, size_t size, size_t nmemb, void *userdata)
 	
     return size*nmemb;
 }
+
+bool IsHttp(s32 *url)
+{
+	bool isHttp = false;
+	s32 *http=NULL;
+	s32 *https=NULL;
+
+	isHttp = false;
+
+	if (Strlen(url) < 7) return false;
+
+	http = MidString(url,0,7);
+	https = MidString(url,0,8);
+
+	if (StrCmp(http, "http://"))
+	{
+		isHttp = true;
+	} else 
+	if (StrCmp(https, "https://"))
+	{
+		isHttp = true;
+	}
+
+	if (http)
+	{
+		Free(http);
+		http=NULL;
+	}
+	if (https)
+	{
+		Free(https);
+		https=NULL;
+	}
+	return isHttp;
+}
