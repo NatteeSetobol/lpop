@@ -20,7 +20,7 @@ bool WSocket::Connect(s32* wurl)
     bool isConnected = false;
 
     GetUrl(wurl);
-
+    
     if (port && host)
     {
         s32 *headers = NULL;
@@ -80,6 +80,7 @@ bool WSocket::IsProtocolSwitched()
             if (StrCmp(respHeader,"HTTP/1.1 101 Switching Protocols"))
             {
                 didConnected = true;
+                break;
             }
 
             delete headers;
@@ -94,24 +95,30 @@ s32 *WSocket::CreateHttpHeaders()
     Map *headers = NULL;
     s32* strHeaders = NULL;
     s32 *tmpFinalHeader = NULL;
+    s32 *origin = NULL;
 
     headers = new Map();
+
+    origin = CS32Cat(2,"http://", host);
 
     headers->Add("Host", host); 
     headers->Add("User-Agent", (void*) "mozilla/5.0 (macintosh; intel mac os x 10.14; rv:66.0) gecko/20100101 firefox/66.0");   
     headers->Add( "Accept",(void*) "*/*");
     headers->Add( "Accept-Language",(void*) "en-US,en;q=0.5");
     headers->Add( "Accept-Encoding",(void*) "gzip");
-    headers->Add( "Sec-WebSocket-Version",(void*) "13");
-    headers->Add( "Origin",(void*) "bagel.htb:8000");
-    headers->Add( "Sec-WebSocket-Extensions",(void*) "permessage-deflate");
-    headers->Add( "Sec-WebSocket-Key",(void*) "gDLpjYAKUWzdQLf/xTFhKQ==");
+    headers->Add( "Origin",(void*) origin);
     headers->Add( "Connection",(void*) "keep-alive, Upgrade");
     headers->Add( "Pragma",(void*) "no-cache");
     headers->Add( "Cache-Control",(void*) "no-cache");
+    headers->Add( "Sec-Fetch-Dest",(void*) "websocket");
+    headers->Add( "Sec-Fetch-Mode",(void*) "websocket");
+    headers->Add( "Sec-Fetch-Site",(void*) "game-origin");
+    headers->Add( "Sec-WebSocket-Extensions",(void*) "permessage-deflate");
+    headers->Add( "Sec-WebSocket-Key",(void*) "gDLpjYAKUWzdQLf/xTFhKQ==");
+    headers->Add( "Sec-WebSocket-Version",(void*) "13");
     headers->Add( "Upgrade",(void*) "websocket");
 
-    strHeaders = CS32Cat(1,"Get / HTTP/1.1");
+    strHeaders = CS32Cat(1,"GET /service HTTP/1.1");
 
     for (int keyIndex = 0; keyIndex < headers->keys->count; keyIndex++)
     {
@@ -199,11 +206,32 @@ void WSocket::GetUrl(char* wurl)
             host = MidString(fullURL,0,*colonPosition);
             portStr = MidString(fullURL, *colonPosition + 1,Strlen(fullURL));
 
-            port = SToI(portStr);
+            if (portStr)
+            {
+                Array *slash = NULL;
 
-            Free(portStr);
-            portStr = NULL;
+                slash = S32Find("/", portStr);
+                
+                if (slash->length > 0)
+                {
+                    i32 *slashPos = NULL;
+                    s32* newPortString = NULL;
 
+                    slashPos = slash->Get(0);
+                    newPortString = MidString(portStr,0,*slashPos);
+                    request = MidString(portStr,*slashPos,strlen(portStr));
+
+                    port = SToI(newPortString);
+                    printf("|%s| |%s|\n", request, newPortString);
+                } else {
+                    port = SToI(portStr);
+                }
+                Free(portStr);
+                portStr = NULL;
+            }
+
+        } else {
+            port = 80;
         }
         
         delete colons;

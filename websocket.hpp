@@ -26,6 +26,7 @@ class WSocket
         struct platform_socket socket;
         s32* host;
         i32 port;
+        s32* request;
 };
 
 #endif
