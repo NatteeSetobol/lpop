@@ -90,6 +90,39 @@ bool WSocket::IsProtocolSwitched()
     return didConnected;
 }
 
+
+s32 *WSocket::Recv()
+{
+    bool didConnected = false;
+    int count = -1;
+    s32 *dataRecv = NULL;
+
+    do
+    {
+        char temp[1028] = {};
+
+        count = RecvFromSocket(&socket, (s32*) temp, 512);
+
+        if (dataRecv == NULL)
+        {
+            dataRecv = S32(temp);
+        } else {
+            s32 *lastDataRecv = NULL;
+            lastDataRecv = dataRecv;
+
+            dataRecv = CS32Cat(2,lastDataRecv, temp );
+
+            if (lastDataRecv)
+            {
+                Free(lastDataRecv);
+                lastDataRecv = NULL;
+            }
+        }
+    } while(count != 0);
+
+    return dataRecv;
+}
+
 s32 *WSocket::CreateHttpHeaders()
 {
     Map *headers = NULL;
@@ -222,12 +255,23 @@ void WSocket::GetUrl(char* wurl)
                     request = MidString(portStr,*slashPos,strlen(portStr));
 
                     port = SToI(newPortString);
-                    printf("|%s| |%s|\n", request, newPortString);
+
+                    Free(newPortString);
+                    newPortString = NULL;
+
+                    Free(request);
+                    request=NULL;
                 } else {
                     port = SToI(portStr);
                 }
                 Free(portStr);
                 portStr = NULL;
+
+                if (slash)
+                {
+                    delete slash;
+                    slash = NULL;
+                }
             }
 
         } else {
@@ -248,7 +292,53 @@ void WSocket::GetUrl(char* wurl)
 }
 
 
-bool WSocket::Send(s32 *message)
+bool WSocket::Send(s32 *sentmessage)
 {
+	struct WEBPACKET webpacket = {};
+	bool sent=false;
+	us32 *packet = NULL;
+	char *message = NULL;
 
+	message = S32(sentmessage);
+
+	//send the fin to true
+	webpacket.fin = 1;
+	webpacket.fin = webpacket.fin << 7;
+	//set op code to 1
+	webpacket.fin = webpacket.fin | 1;
+
+	webpacket.payloadLen = 1;
+	webpacket.payloadLen = webpacket.payloadLen << 7;
+	webpacket.payloadLen = webpacket.payloadLen | (uchar) Strlen(message);
+	memcpy(webpacket.key, "\x81\xfb\xc4\x3f", 4);
+	
+	packet = (us32*) MemoryRaw(sizeof(WEBPACKET) + Strlen(message)+3);
+
+	memcpy(packet, (void*) &webpacket,sizeof(WEBPACKET));
+		
+	for (int i=0, xorCount=0; i < Strlen(message); i++)
+	{
+		message[i] = message[i] ^ webpacket.key[xorCount];
+
+		if (xorCount == 3)
+		{
+			xorCount = 0;
+		} else {
+			xorCount++;
+		}
+	}
+	
+	memcpy(packet+sizeof(WEBPACKET)-1, message,Strlen(message));
+
+	if  (SendToSocket(&socket,(char*) packet,sizeof(WEBPACKET) + (Strlen(message)-1)) > 0)
+	{
+		sent = true;
+	} else {
+		DebugLog("[!] Send failed.\n");
+	}
+	
+	Free(packet);
+	Free(message);
+
+	return sent;
 }

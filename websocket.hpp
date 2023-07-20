@@ -11,13 +11,22 @@
 #include "../lpop/httpprotocol.hpp"
 #include "../lpop/curled.h"
 
+struct WEBPACKET
+{
+	uchar fin;
+	uchar payloadLen;
+	uchar key[5];
+};
+
+
 class WSocket
 {
     public:
         WSocket();
         ~WSocket();
         bool Connect(s32* wurl);
-        bool Send(s32 *message);
+        bool Send(s32 *sendmessage);
+        s32 *Recv();
         bool CheckProtocol(s32* wurl);
         void GetUrl(char *wurl);
         s32 *CreateHttpHeaders();
