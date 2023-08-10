@@ -58,6 +58,7 @@ class _Array
 		void *Get(i64 id);
 		void Remove(i64 id);
 		void ArrayTest();
+		struct link* GetList(i64 id);
 		int count;
 	private:
 		struct link *head;

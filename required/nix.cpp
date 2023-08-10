@@ -18,6 +18,7 @@ void ClearMemory(void* ptr, int size)
 }
 
 //PLATFORM_READ_FILE_DATA(platform_read_file_data)
+/*
 struct file ReadFile(char* filename)
 {
 	struct file result = {};
@@ -61,3 +62,4 @@ bool WriteFile(char* data, int dataSize, char* output)
 
 	return result;
 }
+*/

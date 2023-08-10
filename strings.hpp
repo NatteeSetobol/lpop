@@ -31,7 +31,10 @@ struct string_tokenizer
 	char* at;
 };
 
-
+i32 ToNum(char c);
+i32 TextToNumber(char *numInText);
+_Array* CS32Split(char* source, char* determinator);
+_Array* S32FindString(char* stringToFind, char* source);
 Array *S32Find(s32* stringToFind, s32* source);
 Array* S32Split(char* source, char* determinator);
 s32* PushMidString(memory_arena *arena, s32 *source, i32 from, i32 to);
@@ -76,6 +79,7 @@ s32* S32Cat(s32* source, i32 size, ...);
 #define  StrSplit(source,determinator) StrSplit_(source, determinator,(char*) __FILE__, __LINE__)
 
 
+s32* URLDecode(s32 *encodedText);
 s32* URLEncode(s32 *text);
 void StrCopy(char* dest, char* source, size_t length);
 bool StrCmpCS(char* source, char* compareString);

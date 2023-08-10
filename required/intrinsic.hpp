@@ -85,6 +85,7 @@ inline uint32 AtomicCompareExchangeUIint32(uint32 volatile *value, uint32 New, u
 	return result;
 }
 #elif COMPILER_LLVM
+/*
 #define CompletePreviousWritesBeforeFuturesRead asm volatile(""::: "memory");
 #define CompletePreviousWritesBeforeFuturesWrites asm volatile(""::: "memory")
 
@@ -94,6 +95,7 @@ inline ui32 AtomicCompareExchangeUIint32(uint32 volatile *value, ui32 New, ui32 
 
 	return result;
 }
+*/
 #else
 	//TODO: Other compilers/platforms
 #endif

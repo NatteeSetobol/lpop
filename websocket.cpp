@@ -70,20 +70,35 @@ bool WSocket::IsProtocolSwitched()
 
         if (count > 1)
         {
-            Array *headers = NULL;
+            _Array *headers = NULL;
             s32* respHeader = NULL;
 
-            headers = S32Split(temp,"\r\n");
+            headers = CS32Split(temp,"\r\n");
 
             respHeader = (s32*) headers->Get(0);
 
             if (StrCmp(respHeader,"HTTP/1.1 101 Switching Protocols"))
             {
                 didConnected = true;
-                break;
+            }
+
+            for (int i=0; i < headers->count;i++)
+            {
+                struct link *temp = NULL;
+                
+                temp = headers->GetList(i);
+
+                if (temp)
+                {
+                    Free(temp->ptr);
+                    temp->ptr = NULL;
+                }
             }
 
             delete headers;
+            headers=NULL;
+
+            if (didConnected) break;
         }
     } while (count > 0);
 
@@ -94,8 +109,15 @@ bool WSocket::IsProtocolSwitched()
 s32 *WSocket::Recv()
 {
     bool didConnected = false;
-    int count = -1;
+    int count = 0;
     s32 *dataRecv = NULL;
+    struct WEBPACKET *webpacket=NULL;
+    int payloadLen = 0;
+    char *compressedMessage = NULL;
+    bool isCompressed = false;
+    uchar flags = 0x00;
+    char *compressedData = NULL;
+    char *decompressedData = NULL;
 
     do
     {
@@ -103,22 +125,53 @@ s32 *WSocket::Recv()
 
         count = RecvFromSocket(&socket, (s32*) temp, 512);
 
-        if (dataRecv == NULL)
-        {
-            dataRecv = S32(temp);
-        } else {
-            s32 *lastDataRecv = NULL;
-            lastDataRecv = dataRecv;
+		if (count > 1)
+		{
+			if (dataRecv == NULL)
+			{
+				dataRecv = S32(temp);
+			} else {
+				s32 *lastDataRecv = NULL;
+				lastDataRecv = dataRecv;
 
-            dataRecv = CS32Cat(2,lastDataRecv, temp );
+				dataRecv = CS32Cat(2,lastDataRecv, temp );
 
-            if (lastDataRecv)
-            {
-                Free(lastDataRecv);
-                lastDataRecv = NULL;
-            }
-        }
+				if (lastDataRecv)
+				{
+					Free(lastDataRecv);
+					lastDataRecv = NULL;
+				}
+			}
+
+		}
     } while(count != 0);
+
+    
+    webpacket = (struct WEBPACKET*) dataRecv;
+
+    payloadLen = webpacket->payloadLen;
+    
+    payloadLen = payloadLen & 0x00FFFFFF;
+
+    flags = webpacket->fin;
+
+    flags = flags >> 4;
+
+    flags = flags & 0x0F;
+
+    isCompressed = flags > 4;
+
+    compressedData = dataRecv + (sizeof(WEBPACKET) - 5);   
+
+    if (isCompressed)
+    {
+        s32 *decompressedData2 = NULL;
+        HexPrint(compressedData,payloadLen);
+
+        DebugLog("%s\n", decompressedData2);
+    } else {
+        DebugLog("Not compressed\n");
+    }
 
     return dataRecv;
 }
@@ -151,7 +204,7 @@ s32 *WSocket::CreateHttpHeaders()
     headers->Add( "Sec-WebSocket-Version",(void*) "13");
     headers->Add( "Upgrade",(void*) "websocket");
 
-    strHeaders = CS32Cat(1,"GET /service HTTP/1.1");
+    strHeaders = CS32Cat(1,"GET / HTTP/1.1");
 
     for (int keyIndex = 0; keyIndex < headers->keys->count; keyIndex++)
     {
@@ -183,6 +236,12 @@ s32 *WSocket::CreateHttpHeaders()
 
     delete headers;
     headers = NULL;
+    if (origin)
+    {
+        Free(origin);
+        origin=NULL;
+    }
+
 
     return tmpFinalHeader;
 
@@ -297,9 +356,6 @@ bool WSocket::Send(s32 *sentmessage)
 	struct WEBPACKET webpacket = {};
 	bool sent=false;
 	us32 *packet = NULL;
-	char *message = NULL;
-
-	message = S32(sentmessage);
 
 	//send the fin to true
 	webpacket.fin = 1;
@@ -309,16 +365,16 @@ bool WSocket::Send(s32 *sentmessage)
 
 	webpacket.payloadLen = 1;
 	webpacket.payloadLen = webpacket.payloadLen << 7;
-	webpacket.payloadLen = webpacket.payloadLen | (uchar) Strlen(message);
+	webpacket.payloadLen = webpacket.payloadLen | (uchar) Strlen(sentmessage);
 	memcpy(webpacket.key, "\x81\xfb\xc4\x3f", 4);
 	
-	packet = (us32*) MemoryRaw(sizeof(WEBPACKET) + Strlen(message)+3);
+	packet = (us32*) MemoryRaw(sizeof(WEBPACKET) + Strlen(sentmessage)+3);
 
 	memcpy(packet, (void*) &webpacket,sizeof(WEBPACKET));
 		
-	for (int i=0, xorCount=0; i < Strlen(message); i++)
+	for (int i=0, xorCount=0; i < Strlen(sentmessage); i++)
 	{
-		message[i] = message[i] ^ webpacket.key[xorCount];
+		sentmessage[i] = sentmessage[i] ^ webpacket.key[xorCount];
 
 		if (xorCount == 3)
 		{
@@ -328,9 +384,9 @@ bool WSocket::Send(s32 *sentmessage)
 		}
 	}
 	
-	memcpy(packet+sizeof(WEBPACKET)-1, message,Strlen(message));
+	memcpy(packet+sizeof(WEBPACKET)-1, sentmessage,Strlen(sentmessage));
 
-	if  (SendToSocket(&socket,(char*) packet,sizeof(WEBPACKET) + (Strlen(message)-1)) > 0)
+	if  (SendToSocket(&socket,(char*) packet,sizeof(WEBPACKET) + (Strlen(sentmessage)-1)) > 0)
 	{
 		sent = true;
 	} else {
@@ -338,7 +394,6 @@ bool WSocket::Send(s32 *sentmessage)
 	}
 	
 	Free(packet);
-	Free(message);
-
+	
 	return sent;
 }

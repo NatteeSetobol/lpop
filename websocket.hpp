@@ -1,6 +1,7 @@
 #ifndef __WEBSOCKET__
 #define __WEBSOCKET__
 
+#include <zlib.h>
 #include "../lpop/required/nix.hpp"
 #include "../lpop/required/memory.hpp"
 #include "../lpop/required/platform.hpp"
@@ -10,6 +11,14 @@
 #include "../lpop/strings.hpp"
 #include "../lpop/httpprotocol.hpp"
 #include "../lpop/curled.h"
+#include "../lpop/pwn.hpp"
+
+typedef struct {
+    int distance;
+    int length;
+    char next_char;
+} LZ77Token;
+
 
 struct WEBPACKET
 {
@@ -17,7 +26,6 @@ struct WEBPACKET
 	uchar payloadLen;
 	uchar key[5];
 };
-
 
 class WSocket
 {

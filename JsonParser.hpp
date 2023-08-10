@@ -41,7 +41,8 @@ enum JSON_Token_Type
 	NEXT,
 	SPACE,
 	STRING_TERM,
-	ENTER
+	ENTER,
+	ESCAPE
 };
 
 struct JSON_Token

@@ -106,6 +106,11 @@ void JSON_Parse(char* json, struct Json_Branch* jBranch)
 
 									while (jToken.type != IDENTIFIER && jToken.type != STRING_TERM)
 									{
+										if (jToken.type == ESCAPE)
+										{
+
+											jToken = GetJSONToken(&jTokenizer);
+										}
 										/*
 
 										   char v[3] = { 0 };
@@ -289,6 +294,13 @@ void JSON_Parse(char* json, struct Json_Branch* jBranch)
 
 					switch (jToken.type)
 					{
+						
+						case  ESCAPE:
+						{
+							jToken = GetJSONToken(&jTokenizer);
+							break;
+						}
+						
 						case IDENTIFIER:
 						{
 							value = MidString(currentPlacement,0,j);
@@ -631,6 +643,11 @@ struct JSON_Token GetJSONToken(struct JSON_Tokenizer* jsonTokenizer)
 		case ',':
 		{
 			jsonTokenResults.type = NEXT;
+			break;
+		}
+		case '\\':
+		{
+			jsonTokenResults.type = ESCAPE;
 			break;
 		}
 	

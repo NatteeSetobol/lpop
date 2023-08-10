@@ -19,11 +19,12 @@ class CURLED
         s32* Get(s32 *url);
         s32* Post(s32 *url, s32* postData);
         void AddHeader(s32* key,s32* value);
+        int respStatus;
+        _Array *respHeaders;
+        i32 errorCount;
     private:
-        HashBucket *headersBucket;
         CURL *curl=NULL;
 	    struct curl_slist *headers = NULL;
-
         s32* Request(s32 *url, s32* postData);
 };
 

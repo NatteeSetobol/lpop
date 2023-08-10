@@ -2,13 +2,13 @@
 #define __PLATFORM_H__ 
 
 #include "intrinsic.hpp"
-
+/*
 struct file 
 {
 	char* data;
 	size_t size;
 } ;
-
+*/
 
 #ifdef COMPILER_MSVC
 #include <intrin.h>
@@ -44,7 +44,7 @@ ui64 AtomicExchange32(ui64 volatile *value, ui64  newValue)
 #elif defined ARM
 #else
 #include <x86intrin.h>
-
+#if 0
 #define CompletePreviousReadsBeforeFutureReads asm volatile("" ::: "memory")
 #define CompletePreviousWritesBeforeFutureWrites asm volatile("" ::: "memory")
 
@@ -55,7 +55,7 @@ inline int AtomicExchange32(int volatile *value, int  newValue)
 	int result = __sync_lock_test_and_set(value, newValue);
 	return result;
 }
-
+#endif
 #include <sys/time.h>
 #endif
 
@@ -69,15 +69,15 @@ inline int AtomicExchange32(int volatile *value, int  newValue)
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-#define PLATFORM_READ_FILE_DATA(name) char* name(char* name)
-typedef PLATFORM_READ_FILE_DATA(platform_read_file_data);
+//#define PLATFORM_READ_FILE_DATA(name) char* name(char* name)
+//typedef PLATFORM_READ_FILE_DATA(platform_read_file_data);
 
-void* PlatformAllocate(int size);
+//void* PlatformAllocate(int size);
 
 void ClearMemory(void* ptr, int size);
 
 
 
-struct file ReadFile(char* filename);
+//struct file ReadFile(char* filename);
 
 #endif

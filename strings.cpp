@@ -596,6 +596,48 @@ struct marray* FindString_(char* stringToFind, char* source, char* filename, int
 	return result;
 }
 
+_Array* S32FindString(char* stringToFind, char* source)
+{
+	int i = 0;
+	int  k = 0;
+	int found = 0;
+	int start = 0;
+	_Array* result = new _Array();
+	//NOTES(): this uses NEW and not Memory so you have to use delete() 
+
+	int stringToFindLen = Strlen(source);
+
+	for (i = 0; i < stringToFindLen; i++)
+	{
+		if (stringToFind[0] == source[i] && found == 0)
+		{
+			start = i;
+			found = 1;
+		}
+
+		if (found == 1)
+		{
+	
+			k++;
+
+			if (stringToFind[k] == '\0')
+			{
+				int* position = Memory(int);
+				*position = start;
+				result->Add(position);
+				k = 0;
+				found = 0;
+				start = 0;
+			}
+		} else {
+			k = 0;
+			found = 0;
+		}
+	}
+
+	return result;
+}
+
 Array* FindStringA(char* stringToFind, char* source)
 {
 	int i = 0;
@@ -1052,6 +1094,55 @@ Array* S32Split(char* source, char* determinator)
 	return results;
 }
 
+_Array* CS32Split(char* source, char* determinator)
+{
+	//struct marray* results = NULL;
+	struct marray* findResults = NULL;
+	int oldPosition = 0;
+
+	_Array *results = new _Array();
+
+	findResults = FindString(determinator, source);
+
+	if (findResults)
+	{
+		for (int i = 0; i < findResults->count; i++)
+		{
+			char* storedResults = NULL;
+
+			int* getPosition = GetFromMArray(findResults, i);
+
+			storedResults = MidString(source, oldPosition, *getPosition);
+
+			results->Add((void*) storedResults);
+
+			oldPosition = (*getPosition) + Strlen(determinator);
+
+		}
+	}
+
+	if (oldPosition < Strlen(source))
+	{
+		char* theRest = NULL;
+
+		theRest = MidString(source, oldPosition, Strlen(source));
+
+		results->Add((void*) theRest);
+	}
+
+	if (findResults)
+	{
+
+		FreeMArray(findResults);
+		FreeMemory((i8*)findResults);
+		findResults = NULL;
+	}
+
+	//findResults=NULL;
+
+	return results;
+}
+
 b32 StrCmp(char* source, char* compareString)
 {
 	int i = 0;
@@ -1487,4 +1578,194 @@ s32* URLEncode(s32 *text)
 	}
 
 	return encodedText;
+}
+
+typedef enum _encoded_type
+{
+	NONE,
+	ESCAPE_CHAR,
+	UCODE_END,
+	ENCODED_DATA
+} encoded_type;
+
+typedef struct encoded_token
+{
+	size_t length;
+	encoded_type type;
+	char* data;
+	char c;
+} encoded_token;
+
+typedef struct encoded_tokenizer
+{
+	int count;
+	char* at;
+} encoded_tokenizer;
+
+encoded_token GetEncodedToken(encoded_tokenizer* tokenizer)
+{
+	struct encoded_token etoken = {};
+	char c = 0;
+
+	etoken.length = 1;
+
+	//if (tokenizer->at)
+	{
+		etoken.data = tokenizer->at;
+		c = tokenizer->at[0];
+		etoken.c = c;
+		
+		if (c != '\0')
+		{
+			++tokenizer->count;
+			tokenizer->at++;
+		}
+
+		switch(c)
+		{
+			case '\0': {etoken.type=NONE;break;}
+			case '\\': {etoken.type=ESCAPE_CHAR;break;}
+			case ';': {etoken.type=UCODE_END;break;}
+			default: {etoken.type=ENCODED_DATA;break;}
+		}
+	}
+	
+	return etoken;
+}
+
+s32* URLDecode(s32 *encodedText)
+{
+	s32* result = NULL;
+	encoded_tokenizer eTokenizer = {};
+	encoded_token eToken = {};
+	i32 tokenPos = 0;
+	int count = 0;
+
+	eTokenizer.at = encodedText;
+	eToken = GetEncodedToken(&eTokenizer);
+	
+	result = (s32*) MemoryRaw(Strlen(encodedText)*3);
+
+
+	while(eToken.type != NONE)
+	{
+		switch(eToken.type)
+		{
+			case ESCAPE_CHAR:
+			{
+				eToken = GetEncodedToken(&eTokenizer);
+
+				if (eToken.c == 'u')
+				{
+					i32 start=0;
+					i32 size=0;
+					s32 *re = NULL;
+					char unicode[3] = {};
+					
+					start = tokenPos;
+
+					for (int i = 0; i < 2; i++)
+					{
+						i32 intResults = 0;
+
+						eToken = GetEncodedToken(&eTokenizer);
+						unicode[0] = eToken.c;
+						eToken = GetEncodedToken(&eTokenizer);
+						unicode[1] = eToken.c;
+
+
+
+						intResults = TextToNumber(unicode);
+
+						result[count] = (char) intResults;
+						count++;
+					}
+
+
+				}
+				
+				break;
+			}
+			case ENCODED_DATA:
+			{
+			   result[count] = (char) eToken.c;
+			   count++;
+				break;
+			}
+		}
+
+		tokenPos++;
+
+		eToken = GetEncodedToken(&eTokenizer);
+	}
+	
+	return result;
+}
+
+i32 TextToNumber(char *numInText)
+{
+	s32 c[4] = {};
+	i32 firstNumber = 0;
+	i32 secNumber = 0;
+
+	firstNumber = ToNum(numInText[0]);
+	secNumber = ToNum(numInText[1]);
+
+	firstNumber = firstNumber << 4;
+	firstNumber |=  secNumber;
+
+	return firstNumber;
+}
+
+i32 ToNum(char c)
+{
+	switch(c)
+	{
+		case '0':
+			return 0;
+		case '1':
+			return 1;
+		case '2':
+			return 2;
+		case '3':
+			return 3;
+		case '4':
+			return 4;
+		case '5':
+			return 5;
+		case '6':
+			return 6;
+		case '7':
+			return 7;
+		case '8':
+			return 8;
+		case '9':
+			return 9;	
+		case 'A':
+			return 10;
+		case 'B':
+			return 11;
+		case 'C':
+			return 12;
+		case 'D':
+			return 13;
+		case 'E':
+			return 14;
+		case 'F':
+			return 15;
+		case 'a':
+			return 10;
+		case 'b':
+			return 11;
+		case 'c':
+			return 12;
+		case 'd':
+			return 13;
+		case 'e':
+			return 14;
+		case 'f':
+			return 15;
+	}
+
+	return 0;
 }

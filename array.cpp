@@ -170,6 +170,26 @@ void * _Array::Get(i64 id)
 	return NULL;
 }
 
+struct link* _Array::GetList(i64 id)
+{
+	struct link *list = NULL;
+	int loopCount = 0;
+
+	list = head;
+
+	while(list)
+	{
+		if (loopCount == id)
+		{
+			return list;
+		}
+		loopCount++;
+		list = list->next;
+	}
+
+	return NULL;
+}
+
 
 struct marray_list marrayFreeList = {};
 
